@@ -1,0 +1,13 @@
+/node_modules
+/generated
+/src/main/js/vendor
+/.openai-convert-*
+/oh_modules
+/.preview
+/build
+/.cxx
+/.test
+
+/dist
+/.upgrade-*
+/BuildProfile.ets

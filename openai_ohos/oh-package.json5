@@ -1,0 +1,23 @@
+{
+  "name": "openai_ohos",
+  "version": "1.0.0",
+  "description": "Official OpenAI JavaScript SDK with HarmonyOS fetch, streams and Web API runtime bindings.",
+  "main": "Index.ets",
+  "license": "Apache-2.0",
+  "keywords": [
+    "OpenAI",
+    "HarmonyOS",
+    "DeepSeek",
+    "fetch",
+    "SSE"
+  ],
+  "dependencies": {
+    "openai": "file:./generated/openai.har"
+  },
+  "author": "RainVice",
+  "homepage": "https://github.com/RainVice/openai-ohos",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RainVice/openai-ohos.git"
+  }
+}

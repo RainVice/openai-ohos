@@ -1,0 +1,44 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "demo_background",
+      "value": "#fff1f3f5"
+    },
+    {
+      "name": "demo_surface",
+      "value": "#ffffffff"
+    },
+    {
+      "name": "demo_text",
+      "value": "#e5000000"
+    },
+    {
+      "name": "demo_secondary",
+      "value": "#99000000"
+    },
+    {
+      "name": "demo_accent",
+      "value": "#ff0a59f7"
+    },
+    {
+      "name": "demo_on_accent",
+      "value": "#ffffffff"
+    },
+    {
+      "name": "demo_error",
+      "value": "#ffe84026"
+    },
+    {
+      "name": "demo_input",
+      "value": "#0c000000"
+    },
+    {
+      "name": "demo_divider",
+      "value": "#33000000"
+    }
+  ]
+}

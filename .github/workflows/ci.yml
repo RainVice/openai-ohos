@@ -1,0 +1,35 @@
+name: Cross-platform JavaScript checks
+
+on:
+  push:
+    branches: [ohos]
+  pull_request:
+    branches: [ohos]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  javascript:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: openai_ohos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: openai_ohos/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run convert:js
+      - run: npm test

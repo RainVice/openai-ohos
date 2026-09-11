@@ -1,0 +1,5 @@
+openai_ohos includes the official OpenAI JavaScript SDK, published by OpenAI under Apache-2.0.
+Official source: https://github.com/openai/openai-node
+The original SDK is retained; published JavaScript is mechanically transformed during the build.
+See generated/openai.har for the SDK license and src/main/resources/rawfile/upstream.json for the exact version and integrity.
+Runtime third-party license texts are included in src/main/resources/rawfile/runtime-licenses.txt.

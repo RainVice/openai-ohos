@@ -1,0 +1,87 @@
+name: Sync OpenAI and publish OHPM
+
+on:
+  schedule:
+    - cron: '23 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ohpm-release-ohos
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.repository == 'RainVice/openai-ohos' && github.ref == 'refs/heads/ohos'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      needed: ${{ steps.plan.outputs.needed }}
+      upstream: ${{ steps.plan.outputs.upstream }}
+      version: ${{ steps.plan.outputs.version }}
+    defaults:
+      run:
+        working-directory: openai_ohos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ohos
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: openai_ohos/package-lock.json
+      - run: npm ci --ignore-scripts
+      - id: plan
+        run: npm run ci:plan
+
+  build-publish:
+    needs: plan
+    if: needs.plan.outputs.needed == 'true' && vars.OHPM_RELEASE_ENABLED == 'true'
+    runs-on: [self-hosted, ohos]
+    environment: ohpm
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: openai_ohos
+    env:
+      OPENAI_VERSION: ${{ needs.plan.outputs.upstream }}
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ohos
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: openai_ohos/package-lock.json
+      - name: Install build dependencies
+        run: npm ci --ignore-scripts
+      - name: Prepare package version and changelog
+        run: npm run ci:prepare
+      - name: Upgrade, validate, and build release HAR
+        run: node scripts/upgrade.mjs --version "${{ needs.plan.outputs.upstream }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openai_ohos-${{ needs.plan.outputs.version }}
+          path: openai_ohos/dist/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Record the verified source version
+        run: npm run ci:commit
+      - name: Submit verified HAR to OHPM
+        run: npm run publish:ohpm
+        env:
+          OHPM_PUBLISH_ID: ${{ secrets.OHPM_PUBLISH_ID }}
+          OHPM_PRIVATE_KEY: ${{ secrets.OHPM_PRIVATE_KEY }}
+          OHPM_KEY_PASSPHRASE: ${{ secrets.OHPM_KEY_PASSPHRASE }}
+      - name: Mark successful OHPM submission
+        run: npm run ci:tag

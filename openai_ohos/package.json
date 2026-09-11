@@ -1,0 +1,37 @@
+{
+  "scripts": {
+    "convert": "node scripts/convert-openai.mjs && npm run build:runtime",
+    "test": "node scripts/test.mjs",
+    "test:syntax": "node scripts/check-syntax.mjs",
+    "build:runtime": "node scripts/build-runtime.mjs",
+    "upgrade": "node scripts/upgrade.mjs",
+    "package": "node scripts/package-release.mjs",
+    "verify:package": "node scripts/verify-package.mjs",
+    "convert:js": "node scripts/convert-openai.mjs --no-har && npm run build:runtime",
+    "publish:ohpm": "node scripts/publish-ohpm.mjs",
+    "ci:plan": "node scripts/ci-release.mjs plan",
+    "ci:prepare": "node scripts/ci-release.mjs prepare",
+    "ci:commit": "node scripts/ci-release.mjs commit",
+    "ci:tag": "node scripts/ci-release.mjs tag"
+  },
+  "dependencies": {
+    "openai": "7.15.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/plugin-transform-shorthand-properties": "^8.0.1",
+    "@ungap/structured-clone": "1.4.0",
+    "abort-controller": "3.0.0",
+    "cross-spawn": "7.0.6",
+    "esbuild": "0.28.2",
+    "json5": "2.2.3",
+    "tar": "7.5.22",
+    "web-streams-polyfill": "4.3.0",
+    "yaml": "2.9.1"
+  },
+  "name": "openai-ohos-build",
+  "private": true,
+  "engines": {
+    "node": "^22.18.0 || >=24.11.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "OpenAI HarmonyOS 适配层编译与运行时能力示例",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "openai_ohos": "file:../openai_ohos"
+  }
+}
