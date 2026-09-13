@@ -34,13 +34,13 @@ export function verifyReleaseHash(archive) {
   return report;
 }
 
-export async function publish(env = process.env) {
+export async function publish(env = process.env, { resubmit = false } = {}) {
   const archive = path.join(root, 'dist/openai_ohos.har');
   const report = verifyReleaseHash(archive);
   validateRegistryMetadata(JSON5.parse(readArchiveFile(archive, 'package/oh-package.json5').toString('utf8')));
   if (report.version !== report.upstreamVersion) throw new Error('Release version is not aligned with the official SDK');
   // Recheck immediately before publication; the registry can change after planning/building.
-  if ((await publishedVersions(report.package)).includes(report.version)) {
+  if (!resubmit && (await publishedVersions(report.package)).includes(report.version)) {
     console.log(`Skipped ${report.package}@${report.version}: this version is already published on OHPM.`);
     return report;
   }
@@ -84,4 +84,8 @@ export async function publish(env = process.env) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await publish();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+  if (args.some(arg => arg !== '--resubmit')) throw new Error('Usage: npm run publish:ohpm -- [--resubmit]');
+  await publish(process.env, { resubmit: args.includes('--resubmit') });
+}
