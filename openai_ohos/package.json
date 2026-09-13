@@ -10,7 +10,6 @@
     "convert:js": "node scripts/convert-openai.mjs --no-har && npm run build:runtime",
     "publish:ohpm": "node scripts/publish-ohpm.mjs",
     "ci:plan": "node scripts/ci-release.mjs plan",
-    "ci:prepare": "node scripts/ci-release.mjs prepare",
     "ci:commit": "node scripts/ci-release.mjs commit",
     "ci:tag": "node scripts/ci-release.mjs tag"
   },

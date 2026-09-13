@@ -4,7 +4,7 @@
 
 保留官方 SDK 的 API 调用形式与类型声明，接口资源、重试和 SSE 解析由官方 SDK 实现。官方 SDK 源码不手工修改，发布时通过模块图打包与语法转换适配 HarmonyOS。
 
-本库由社区维护，非 OpenAI 官方发布的 HarmonyOS SDK。
+本库由社区维护，非 OpenAI 官方发布的 HarmonyOS SDK。包版本号与内置官方 SDK 版本一致，例如 `openai_ohos@7.15.0` 对应 `openai@7.15.0`。
 
 ## 下载安装
 

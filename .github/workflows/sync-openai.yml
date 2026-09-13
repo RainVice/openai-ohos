@@ -65,9 +65,7 @@ jobs:
           cache-dependency-path: openai_ohos/package-lock.json
       - name: Install build dependencies
         run: npm ci --ignore-scripts
-      - name: Prepare package version and changelog
-        run: npm run ci:prepare
-      - name: Upgrade, validate, and build release HAR
+      - name: Align version, upgrade, validate, and build release HAR
         run: node scripts/upgrade.mjs --version "${{ needs.plan.outputs.upstream }}"
       - uses: actions/upload-artifact@v4
         with:

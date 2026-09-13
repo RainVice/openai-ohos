@@ -31,6 +31,7 @@ try {
   fs.writeFileSync(sdk, readArchiveFile(archive, 'package/generated/openai.har'));
   const sdkManifest = JSON5.parse(readArchiveFile(sdk, 'package/oh-package.json5').toString('utf8'));
   if (sdkManifest.version !== upstream.version) throw new Error('Bundled SDK version does not match upstream report');
+  if (manifest.version !== upstream.version) throw new Error('OHPM package version must equal the bundled official SDK version');
   run(ohpmBinary(), ['prepublish', archive]);
   scaffold(workspace, ['entry']);
   fs.mkdirSync(path.join(workspace, 'entry/libs'), { recursive: true });

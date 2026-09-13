@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { root, run } from './toolchain.mjs';
+import { alignPackageVersion } from './release-version.mjs';
 
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--version')) throw new Error('Usage: npm run upgrade [-- --version x.y.z]');
@@ -9,7 +10,7 @@ const latest = args[1] ?? JSON.parse(run('npm', ['view', 'openai@latest', 'versi
 if (!/^\d+\.\d+\.\d+$/.test(latest)) throw new Error(`Unexpected latest stable version: ${latest}`);
 console.log(`Official npm latest: openai@${latest}`);
 const transaction = fs.mkdtempSync(path.join(root, '.upgrade-'));
-const tracked = ['package.json', 'package-lock.json', 'generated', 'src/main/js/vendor', 'src/main/resources/rawfile/runtime-licenses.txt'];
+const tracked = ['package.json', 'package-lock.json', 'oh-package.json5', 'CHANGELOG.md', 'generated', 'src/main/js/vendor', 'src/main/resources/rawfile/runtime-licenses.txt'];
 const existed = new Set();
 for (const item of tracked) {
   if (fs.existsSync(path.join(root, item))) {
@@ -21,6 +22,7 @@ for (const item of tracked) {
 }
 try {
   run('npm', ['install', `openai@${latest}`, '--save-exact', '--ignore-scripts', '--registry', registry]);
+  alignPackageVersion(root, latest);
   run('npm', ['run', 'convert']);
   run('npm', ['run', 'package']);
   console.log(`Upgrade complete: openai@${latest}. Dist passed prepublish and standalone consumer build. Nothing was published.`);
