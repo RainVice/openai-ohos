@@ -5,24 +5,19 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createHash } from 'node:crypto';
 import { run } from './toolchain.mjs';
+import { validateDownloadURL, downloadToolchainResponse } from './toolchain-download.mjs';
 
 if (process.platform !== 'linux' || process.arch !== 'x64') throw new Error('Hosted release setup requires Linux x64');
 const source = process.env.HARMONY_CLT_URL;
 if (!source) throw new Error('Set repository Variable HARMONY_CLT_URL to the official Linux x64 Command Line Tools 26.0.0.821 ZIP download URL.');
-const approved = value => {
-  const url = new URL(value);
-  return url.protocol === 'https:' && !url.username && !url.password &&
-    ['huawei.com', 'huaweicloud.com'].some(domain => url.hostname === domain || url.hostname.endsWith(`.${domain}`));
-};
-if (!approved(source)) throw new Error('Use the official HTTPS Huawei download URL');
+validateDownloadURL(source);
 const destination = path.join(process.env.RUNNER_TEMP, 'harmony-clt');
 fs.mkdirSync(destination, { recursive: true });
 const archive = path.join(destination, 'tools.zip');
 console.log('Downloading official HarmonyOS Command Line Tools on the hosted runner...');
-const response = await fetch(source, { signal: AbortSignal.timeout(15 * 60 * 1000) });
-if (!response.ok || !approved(response.url)) throw new Error(`Official toolchain download failed (HTTP ${response.status})`);
-await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(archive));
 try {
+  const response = await downloadToolchainResponse(source);
+  await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(archive));
   const hash = createHash('sha256');
   for await (const chunk of fs.createReadStream(archive)) hash.update(chunk);
   // Linux x64 26.0.0.821 distribution baseline. A different release must be
