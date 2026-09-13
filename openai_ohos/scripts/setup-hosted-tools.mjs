@@ -14,19 +14,26 @@ if (!source) throw new Error('Set repository Variable HARMONY_CLT_URL to the off
 validateDownloadURL(source);
 const destination = path.join(process.env.RUNNER_TEMP, 'harmony-clt');
 fs.mkdirSync(destination, { recursive: true });
-const archive = path.join(destination, 'tools.zip');
-console.log('Downloading official HarmonyOS Command Line Tools on the hosted runner...');
-try {
-  const response = await downloadToolchainResponse(source);
-  await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(archive));
-  const hash = createHash('sha256');
-  for await (const chunk of fs.createReadStream(archive)) hash.update(chunk);
-  // Linux x64 26.0.0.821 distribution baseline. A different release must be
-  // reviewed and its digest updated in code, rather than accepting any ZIP.
-  if (hash.digest('hex') !== '58da7359019e9360a8bb82da0cd1d3b3b26fedc338379f257849f2162e3ac1fc') {
-    throw new Error('Command Line Tools archive does not match the pinned 26.0.0.821 SHA-256');
-  }
-  run('python3', ['-c', `
+const matches = [];
+function find(directory, depth = 0) {
+  if (fs.existsSync(path.join(directory, 'sdk/default/hms')) && fs.existsSync(path.join(directory, 'hvigor/bin/hvigorw.js'))) matches.push(directory);
+  if (depth < 3 && fs.existsSync(directory)) for (const child of fs.readdirSync(directory, { withFileTypes: true })) if (child.isDirectory()) find(path.join(directory, child.name), depth + 1);
+}
+find(destination);
+if (matches.length === 1) {
+  console.log('Found cached complete HarmonyOS Command Line Tools installation.');
+} else {
+  const archive = path.join(destination, 'tools.zip');
+  console.log('Downloading official HarmonyOS Command Line Tools on the hosted runner...');
+  try {
+    const response = await downloadToolchainResponse(source);
+    await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(archive));
+    const hash = createHash('sha256');
+    for await (const chunk of fs.createReadStream(archive)) hash.update(chunk);
+    if (hash.digest('hex') !== '58da7359019e9360a8bb82da0cd1d3b3b26fedc338379f257849f2162e3ac1fc') {
+      throw new Error('Command Line Tools archive does not match the pinned 26.0.0.821 SHA-256');
+    }
+    run('python3', ['-c', `
 import os, pathlib, stat, sys, zipfile
 archive, destination = sys.argv[1:]
 base = pathlib.Path(destination).resolve()
@@ -54,23 +61,18 @@ for target, link in links:
     if not target.resolve().is_relative_to(base):
         raise RuntimeError('Unsafe toolchain symlink chain')
 `, archive, destination]);
-} finally { fs.rmSync(archive, { force: true }); }
-
-const matches = [];
-function find(directory, depth = 0) {
-  if (fs.existsSync(path.join(directory, 'sdk/default/hms')) && fs.existsSync(path.join(directory, 'hvigor/bin/hvigorw.js'))) matches.push(directory);
-  if (depth < 3) for (const child of fs.readdirSync(directory, { withFileTypes: true })) if (child.isDirectory()) find(path.join(directory, child.name), depth + 1);
+  } finally { fs.rmSync(archive, { force: true }); }
+  find(destination);
+  if (matches.length !== 1) throw new Error('Expected one complete HarmonyOS Command Line Tools installation (including HMS SDK)');
 }
-find(destination);
-if (matches.length !== 1) throw new Error('Expected one complete HarmonyOS Command Line Tools installation (including HMS SDK)');
 const tools = matches[0];
 const env = resolveHostedToolchain(tools);
 for (const key of ['OHPM_BIN', 'HVIGOR_BIN', 'ES2ABC_BIN']) {
   fs.chmodSync(env[key], 0o755);
 }
 console.log(`ETS compiler: ${path.relative(tools, env.ES2ABC_BIN)}`);
-// Detect architecture/shared-library problems during setup, before the large SDK build.
 run(env.ES2ABC_BIN, ['--bc-version']);
 if (!process.env.GITHUB_ENV) throw new Error('GITHUB_ENV is required');
-for (const [name, value] of Object.entries(env)) fs.appendFileSync(process.env.GITHUB_ENV, `${name}=${value}\n`);
+for (const [name, value] of Object.entries(env)) fs.appendFileSync(process.env.GITHUB_ENV, `${name}=${value}
+`);
 console.log('Configured OHPM, Hvigor and the full HarmonyOS SDK. No user tool paths required.');
