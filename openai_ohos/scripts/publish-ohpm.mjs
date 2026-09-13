@@ -5,6 +5,7 @@ import { createHash, createPrivateKey } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { root, run, ohpmBinary } from './toolchain.mjs';
 import { publishedVersions } from './release-version.mjs';
+import { publicationDiagnostic } from './publish-diagnostics.mjs';
 
 export function validateCredentials(env) {
   for (const name of ['OHPM_PUBLISH_ID', 'OHPM_PRIVATE_KEY', 'OHPM_KEY_PASSPHRASE']) {
@@ -43,12 +44,14 @@ export async function publish(env = process.env) {
   const temporary = fs.mkdtempSync(path.join(env.RUNNER_TEMP || os.tmpdir(), 'ohpm-publish-'));
   const privateKey = path.join(temporary, 'private.pem');
   const cryptoDirectory = path.join(temporary, 'crypto');
+  let stage = 'encrypt-private-key-password';
+  let ciphertext = '';
   try {
     fs.writeFileSync(privateKey, pem, { mode: 0o600 });
     fs.mkdirSync(cryptoDirectory, { mode: 0o700 });
     // Supply a temporary terminal to the official encryption command. Users only
     // configure the original private-key password, never a machine-bound ciphertext.
-    const ciphertext = run(env.PYTHON_BIN || 'python3', [path.join(root, 'scripts/encrypt-passphrase.py')], temporary, {
+    ciphertext = run(env.PYTHON_BIN || 'python3', [path.join(root, 'scripts/encrypt-passphrase.py')], temporary, {
       stdio: 'pipe', encoding: 'utf8', timeout: 40000,
       input: JSON.stringify({ password: env.OHPM_KEY_PASSPHRASE,
         command: [ohpmBinary(), 'config', 'encrypt', '--crypto_path', cryptoDirectory] }),
@@ -64,12 +67,14 @@ export async function publish(env = process.env) {
     };
     fs.writeFileSync(path.join(temporary, '.ohpmrc'), Object.entries(fields).map(([name, value]) => `${name}=${JSON.stringify(value)}`).join('\n') + '\n', { mode: 0o600 });
     // No writes to the user's global .ohpmrc. Project config is scoped to this temporary cwd.
+    stage = 'submit-to-ohpm';
     run(ohpmBinary(), ['publish', archive], temporary, { stdio: 'pipe', timeout: 300000 });
     console.log(`Submitted ${report.package}@${report.version} to OHPM. Repository review may still be pending.`);
     return report;
   } catch (error) {
     // Child output can include authentication material; never forward it to Actions logs.
-    throw new Error(`OHPM publication did not complete (${error.status ?? error.code ?? 'configuration error'}). Check OHPM account, public key and package review status before retrying.`);
+    const diagnostic = publicationDiagnostic(error, [pem, env.OHPM_PUBLISH_ID, env.OHPM_KEY_PASSPHRASE, ciphertext]);
+    throw new Error(`OHPM ${stage} failed (${error.status ?? error.code ?? 'configuration error'}). ${diagnostic}`);
   } finally {
     fs.rmSync(temporary, { recursive: true, force: true });
   }
