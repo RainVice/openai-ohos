@@ -14,7 +14,10 @@
   "dependencies": {
     "openai": "file:./generated/openai.har"
   },
-  "author": "RainVice",
+  "author": {
+    "name": "RainVice",
+    "url": "https://github.com/RainVice"
+  },
   "homepage": "https://github.com/RainVice/openai-ohos",
   "repository": {
     "type": "git",

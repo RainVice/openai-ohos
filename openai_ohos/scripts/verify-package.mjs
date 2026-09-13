@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import JSON5 from 'json5';
 import { listArchive, readArchiveFile } from './archive.mjs';
 import { root, run, deveco, ohpmBinary, scaffold, write } from './toolchain.mjs';
+import { validateRegistryMetadata } from './registry-metadata.mjs';
 
 const archive = path.resolve(process.argv[2] ?? path.join(root, 'dist/openai_ohos.har'));
 if (!fs.existsSync(archive)) throw new Error(`HAR not found: ${archive}`);
@@ -12,6 +13,7 @@ const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'openai-ohos-consumer-')
 try {
   const entries = listArchive(archive);
   const manifest = JSON5.parse(readArchiveFile(archive, 'package/oh-package.json5').toString('utf8'));
+  validateRegistryMetadata(manifest);
   for (const required of ['package/oh-package.json5', 'package/LICENSE', 'package/README.md', 'package/CHANGELOG.md', 'package/generated/openai.har',
     'package/src/main/resources/rawfile/runtime-licenses.txt', 'package/src/main/resources/rawfile/upstream.json',
     'package/src/main/resources/rawfile/NOTICE.txt']) {

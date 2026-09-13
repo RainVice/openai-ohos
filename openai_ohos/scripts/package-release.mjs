@@ -3,10 +3,12 @@ import os from 'node:os';
 import path from 'node:path';
 import JSON5 from 'json5';
 import { root, run, deveco, scaffold, write } from './toolchain.mjs';
+import { validateRegistryMetadata } from './registry-metadata.mjs';
 
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8')).packages['node_modules/openai'];
 const generated = JSON.parse(fs.readFileSync(path.join(root, 'generated/conversion.json'), 'utf8'));
 const manifest = JSON5.parse(fs.readFileSync(path.join(root, 'oh-package.json5'), 'utf8'));
+validateRegistryMetadata(manifest);
 if (manifest.version !== lock.version) throw new Error('OHPM package version must equal the locked official SDK version. Run npm run upgrade.');
 if (generated.version !== lock.version || generated.integrity !== lock.integrity) {
   throw new Error('Generated SDK does not match package-lock.json. Run npm run convert before packaging.');

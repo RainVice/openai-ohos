@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { root, run, ohpmBinary } from './toolchain.mjs';
 import { publishedVersions } from './release-version.mjs';
 import { publicationDiagnostic } from './publish-diagnostics.mjs';
+import JSON5 from 'json5';
+import { readArchiveFile } from './archive.mjs';
+import { validateRegistryMetadata } from './registry-metadata.mjs';
 
 export function validateCredentials(env) {
   for (const name of ['OHPM_PUBLISH_ID', 'OHPM_PRIVATE_KEY', 'OHPM_KEY_PASSPHRASE']) {
@@ -34,6 +37,7 @@ export function verifyReleaseHash(archive) {
 export async function publish(env = process.env) {
   const archive = path.join(root, 'dist/openai_ohos.har');
   const report = verifyReleaseHash(archive);
+  validateRegistryMetadata(JSON5.parse(readArchiveFile(archive, 'package/oh-package.json5').toString('utf8')));
   if (report.version !== report.upstreamVersion) throw new Error('Release version is not aligned with the official SDK');
   // Recheck immediately before publication; the registry can change after planning/building.
   if ((await publishedVersions(report.package)).includes(report.version)) {
