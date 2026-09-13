@@ -11,7 +11,8 @@
     "publish:ohpm": "node scripts/publish-ohpm.mjs",
     "ci:plan": "node scripts/ci-release.mjs plan",
     "ci:commit": "node scripts/ci-release.mjs commit",
-    "ci:tag": "node scripts/ci-release.mjs tag"
+    "ci:tag": "node scripts/ci-release.mjs tag",
+    "build": "node scripts/build-local.mjs"
   },
   "dependencies": {
     "openai": "7.15.0"

@@ -33,11 +33,32 @@ export function executableOnPath(name, env = process.env, platform = process.pla
 export function resolveTool(name, variable, env = process.env, platform = process.platform) {
   if (env[variable]) {
     const candidate = path.resolve(env[variable]);
-    if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) throw new Error(`${variable} is not a file`);
-    return candidate;
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
   }
   const found = executableOnPath(name, env, platform);
   if (found) return found;
+
+  // 自动探测本地常见安装路径（如 DevEco Studio 默认路径）
+  const defaults = {
+    ohpm: platform === 'darwin'
+      ? ['/Applications/DevEco-Studio.app/Contents/tools/ohpm/bin/ohpm']
+      : platform === 'win32'
+      ? ['C:\Program Files\Huawei\DevEco Studio\tools\ohpm\bin\ohpm.bat']
+      : [],
+    es2abc: platform === 'darwin'
+      ? ['/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony/ets/build-tools/ets-loader/bin/ark/build-mac/bin/es2abc']
+      : platform === 'win32'
+      ? ['C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\ets\build-tools\ets-loader\bin\ark\build-win\bin\es2abc.exe']
+      : [],
+    hvigorw: platform === 'darwin'
+      ? ['/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw.js']
+      : platform === 'win32'
+      ? ['C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.js']
+      : []
+  };
+  for (const candidate of (defaults[name] || [])) {
+    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+  }
   throw new Error(`Cannot find ${name}. Add it to PATH or set ${variable}.`);
 }
 export function ohpmBinary() { return resolveTool('ohpm', 'OHPM_BIN'); }

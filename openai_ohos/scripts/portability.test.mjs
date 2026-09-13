@@ -31,7 +31,7 @@ test('tool resolution supports explicit paths with spaces and Windows command la
     const file = path.join(temporary, 'ohpm.cmd'); fs.writeFileSync(file, '@echo off');
     assert.equal(resolveTool('ohpm', 'OHPM_BIN', { OHPM_BIN: file }), file);
     assert.equal(executableOnPath('ohpm', { PATH: temporary, PATHEXT: '.CMD;.EXE' }, 'win32'), file);
-    assert.throws(() => resolveTool('es2abc', 'ES2ABC_BIN', { PATH: '' }), /ES2ABC_BIN/);
+    assert.throws(() => resolveTool('es2abc', 'ES2ABC_BIN', { PATH: '' }, 'linux'), /ES2ABC_BIN/);
   } finally { fs.rmSync(temporary, { recursive: true, force: true }); }
 });
 
