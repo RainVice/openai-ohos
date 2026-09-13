@@ -18,3 +18,9 @@ test('invalid author contact metadata fails locally', () => {
     assert.throws(() => validateRegistryMetadata({ author }));
   }
 });
+test('OHPM repository is a URL string, not an npm repository object', () => {
+  const author = { name: 'RainVice', url: 'https://github.com/RainVice' };
+  assert.doesNotThrow(() => validateRegistryMetadata({ author, repository: 'https://github.com/RainVice/openai-ohos.git' }));
+  assert.throws(() => validateRegistryMetadata({ author, repository: { type: 'git', url: 'https://github.com/RainVice/openai-ohos.git' } }), /URL string/);
+  assert.throws(() => validateRegistryMetadata({ author, repository: 'github:RainVice/openai-ohos' }), /URL string/);
+});
