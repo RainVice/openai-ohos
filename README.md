@@ -93,9 +93,7 @@ const response = await stream.finalResponse();
 ### 取消普通请求
 
 ```ts
-import { createHarmonyAbortController } from 'openai_ohos';
-
-const controller = createHarmonyAbortController();
+const controller = new AbortController();
 const request = client.responses.create(
   { model: 'deepseek-flash', input: '你好' },
   { signal: controller.signal }
@@ -131,16 +129,7 @@ HTTP 4xx/5xx、网络错误、超时及取消会交由官方 SDK 处理，应用
 | --- | --- |
 | `OpenAI` 默认导出 / 命名导出 | 官方客户端及其 API |
 | 官方 SDK 类型与错误类 | 通过模块根入口重新导出 |
-| `harmonyFetch` | 使用 HarmonyOS 原生网络能力的 fetch 适配 |
-| `installHarmonyRuntime()` | 初始化缺失的 Web API；导入模块时自动执行 |
-| `createHarmonyAbortController()` | 创建可用于请求取消的控制器 |
-
-如需显式指定网络实现：
-
-```ts
-import OpenAI, { harmonyFetch } from 'openai_ohos';
-const client = new OpenAI({ apiKey: YOUR_API_KEY, fetch: harmonyFetch });
-```
+导入 `openai_ohos` 时自动初始化所需运行时。取消普通请求直接使用全局 `new AbortController()`，不需要导入平台专用工厂函数；取消流式请求使用官方 `stream.abort()`。
 
 ## 支持范围与约束
 

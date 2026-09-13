@@ -50,13 +50,13 @@ try {
   write(workspace, 'entry/src/main/resources/base/profile/main_pages.json', { src: ['pages/Index'] });
   write(workspace, 'entry/src/main/resources/base/element/color.json', { color: [{ name: 'start_background', value: '#FFFFFF' }] });
   write(workspace, 'entry/src/main/ets/EntryAbility.ets', "import { UIAbility } from '@kit.AbilityKit';\nimport { window } from '@kit.ArkUI';\nexport default class EntryAbility extends UIAbility {\n  onWindowStageCreate(stage: window.WindowStage): void { try { stage.loadContent('pages/Index'); } catch (error) { console.error((error as Error).message); } }\n}\n");
-  write(workspace, 'entry/src/main/ets/pages/Index.ets', `import OpenAI, { OpenAI as NamedOpenAI, harmonyFetch, createHarmonyAbortController } from 'openai_ohos';
+  write(workspace, 'entry/src/main/ets/pages/Index.ets', `import OpenAI, { OpenAI as NamedOpenAI } from 'openai_ohos';
 @Entry
 @Component
 struct Index {
-  private client: OpenAI = new NamedOpenAI({ apiKey: 'compile-only', fetch: harmonyFetch });
+  private client: OpenAI = new NamedOpenAI({ apiKey: 'compile-only' });
   async verify(): Promise<void> {
-    const controller = createHarmonyAbortController();
+    const controller = new AbortController();
     const response = await this.client.responses.create({ model: 'compile-only', input: 'test' }, { signal: controller.signal });
     console.info(response.output_text);
   }

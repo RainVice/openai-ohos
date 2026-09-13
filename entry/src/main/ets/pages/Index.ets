@@ -1,4 +1,4 @@
-import OpenAI, { APIError, createHarmonyAbortController } from 'openai_ohos';
+import OpenAI, { APIError } from 'openai_ohos';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { util } from '@kit.ArkTS';
 import { DEEPSEEK_API_KEY } from '../config/DemoSecrets';
@@ -90,7 +90,7 @@ struct Index {
         else if (response.status === 'failed') throw new Error(response.error?.message || '模型生成失败');
         else this.statusText = '回答完成';
       } else {
-        const controller = createHarmonyAbortController();
+        const controller = new AbortController();
         this.cancelRequest = () => { controller.abort(); };
         const response = await this.client.responses.create({ model: 'deepseek-flash', input, max_output_tokens: 1024, stream: false }, { signal: controller.signal });
         this.result = response.output_text;

@@ -52,13 +52,12 @@ function startNative(request, sink) {
   return { cancel() { if (!finished) { finished = true; session.cancel(native); session.close(); } } };
 }
 
-export const harmonyFetch = createFetchAdapter(platform, startNative);
-export function createHarmonyAbortController() { return new AbortController(); }
-export function installHarmonyRuntime() {
+const harmonyFetch = createFetchAdapter(platform, startNative);
+function initializeRuntime() {
   for (const [key, value] of Object.entries(platform)) {
     if (typeof globalThis[key] === 'undefined') globalThis[key] = value;
   }
   if (typeof globalThis.fetch === 'undefined') globalThis.fetch = harmonyFetch;
   if (typeof globalThis.structuredClone === 'undefined') globalThis.structuredClone = structuredClone;
 }
-installHarmonyRuntime();
+initializeRuntime();
