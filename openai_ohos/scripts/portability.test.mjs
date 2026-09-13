@@ -41,17 +41,14 @@ test('process arguments are preserved without a shell', () => {
   assert.equal(output, value);
 });
 
-test('publication rejects missing credentials and requires encrypted OHPM passphrase configuration', () => {
+test('publication accepts three credentials and verifies the original key password', () => {
   assert.throws(() => validateCredentials({}), /OHPM_PUBLISH_ID/);
   assert.throws(() => validateCredentials({ OHPM_PUBLISH_ID: 'test', OHPM_PRIVATE_KEY: 'plain', OHPM_KEY_PASSPHRASE: 'test' }), /encrypted/);
   const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 4096,
     privateKeyEncoding: { type: 'pkcs1', format: 'pem', cipher: 'aes-256-cbc', passphrase: 'temporary-test-only' },
     publicKeyEncoding: { type: 'spki', format: 'pem' } });
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'crypto-config-test-'));
-  try {
-    assert.equal(validateCredentials({ OHPM_PUBLISH_ID: 'test', OHPM_PRIVATE_KEY: privateKey, OHPM_KEY_PASSPHRASE: 'security:test-ciphertext', OHPM_CRYPTO_PATH: directory }), privateKey);
-    assert.throws(() => validateCredentials({ OHPM_PUBLISH_ID: 'test', OHPM_PRIVATE_KEY: privateKey, OHPM_KEY_PASSPHRASE: 'raw-password', OHPM_CRYPTO_PATH: directory }), /ciphertext/);
-  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+  assert.equal(validateCredentials({ OHPM_PUBLISH_ID: 'test', OHPM_PRIVATE_KEY: privateKey, OHPM_KEY_PASSPHRASE: 'temporary-test-only' }), privateKey);
+  assert.throws(() => validateCredentials({ OHPM_PUBLISH_ID: 'test', OHPM_PRIVATE_KEY: privateKey, OHPM_KEY_PASSPHRASE: 'wrong' }), /must match/);
 });
 
 test('workflow separates hosted cross-platform tests and credentialed release jobs', () => {
@@ -59,8 +56,9 @@ test('workflow separates hosted cross-platform tests and credentialed release jo
   assert.deepEqual(ci.jobs.javascript.strategy.matrix.os, ['ubuntu-latest', 'windows-latest', 'macos-latest']);
   const release = parse(fs.readFileSync(path.join(root, '../.github/workflows/sync-openai.yml'), 'utf8'));
   assert.equal(release.on.schedule[0].cron, '23 0 * * *');
-  assert.match(release.jobs['build-publish'].if, /OHPM_RELEASE_ENABLED/);
-  assert.equal(release.jobs['build-publish'].environment, 'ohpm');
+  assert.equal(release.jobs['build-publish']['runs-on'], 'ubuntu-24.04');
+  assert.equal(release.jobs['build-publish'].environment, undefined);
+  assert.doesNotMatch(release.jobs['build-publish'].if, /OHPM_RELEASE_ENABLED/);
   const steps = release.jobs['build-publish'].steps;
   const publish = steps.find(step => step.run === 'npm run publish:ohpm');
   assert.equal(Object.keys(publish.env).length, 3);

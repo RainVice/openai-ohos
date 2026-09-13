@@ -41,9 +41,8 @@ jobs:
 
   build-publish:
     needs: plan
-    if: needs.plan.outputs.needed == 'true' && vars.OHPM_RELEASE_ENABLED == 'true'
-    runs-on: [self-hosted, ohos]
-    environment: ohpm
+    if: needs.plan.outputs.needed == 'true'
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
       contents: write
@@ -54,6 +53,21 @@ jobs:
       OPENAI_VERSION: ${{ needs.plan.outputs.upstream }}
       RELEASE_VERSION: ${{ needs.plan.outputs.version }}
     steps:
+      - name: Check the three publishing Secrets and toolchain download
+        shell: bash
+        working-directory: ${{ runner.temp }}
+        env:
+          OHPM_PUBLISH_ID: ${{ secrets.OHPM_PUBLISH_ID }}
+          OHPM_PRIVATE_KEY: ${{ secrets.OHPM_PRIVATE_KEY }}
+          OHPM_KEY_PASSPHRASE: ${{ secrets.OHPM_KEY_PASSPHRASE }}
+          HARMONY_CLT_URL: ${{ vars.HARMONY_CLT_URL }}
+        run: |
+          for name in OHPM_PUBLISH_ID OHPM_PRIVATE_KEY OHPM_KEY_PASSPHRASE HARMONY_CLT_URL; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing configuration: $name (see docs/MAINTAINING.md)"
+              exit 1
+            fi
+          done
       - uses: actions/checkout@v4
         with:
           ref: ohos
@@ -63,8 +77,16 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: openai_ohos/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Install build dependencies
         run: npm ci --ignore-scripts
+      - name: Install official HarmonyOS toolchain automatically
+        run: node scripts/setup-hosted-tools.mjs
+        env:
+          HARMONY_CLT_URL: ${{ vars.HARMONY_CLT_URL }}
       - name: Align version, upgrade, validate, and build release HAR
         run: node scripts/upgrade.mjs --version "${{ needs.plan.outputs.upstream }}"
       - uses: actions/upload-artifact@v4

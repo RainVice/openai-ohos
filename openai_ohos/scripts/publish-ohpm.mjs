@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, createPrivateKey } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { root, run, ohpmBinary } from './toolchain.mjs';
 import { publishedVersions } from './release-version.mjs';
@@ -13,8 +13,11 @@ export function validateCredentials(env) {
   if (/[\r\n]/.test(env.OHPM_PUBLISH_ID)) throw new Error('Invalid OHPM_PUBLISH_ID');
   const pem = env.OHPM_PRIVATE_KEY.replace(/\r\n/g, '\n');
   if (!/ENCRYPTED/.test(pem)) throw new Error('OHPM requires a password-encrypted PEM private key');
-  if (!/^security:[^\r\n]+$/.test(env.OHPM_KEY_PASSPHRASE)) throw new Error('OHPM_KEY_PASSPHRASE must contain ohpm config encrypt ciphertext (security:...), not a raw password');
-  if (!env.OHPM_CRYPTO_PATH || !fs.existsSync(env.OHPM_CRYPTO_PATH) || !fs.statSync(env.OHPM_CRYPTO_PATH).isDirectory()) throw new Error('Set OHPM_CRYPTO_PATH to the matching runner encryption component directory');
+  if (/[\r\n\x00-\x1f\x7f]/.test(env.OHPM_KEY_PASSPHRASE)) throw new Error('Private-key passphrase must not contain control characters');
+  try {
+    const key = createPrivateKey({ key: pem, passphrase: env.OHPM_KEY_PASSPHRASE });
+    if (key.asymmetricKeyType !== 'rsa' || key.asymmetricKeyDetails.modulusLength < 4096) throw new Error();
+  } catch { throw new Error('Private key must be encrypted RSA 4096+ PEM and its passphrase must match'); }
   return pem;
 }
 
@@ -39,17 +42,24 @@ export async function publish(env = process.env) {
   const pem = validateCredentials(env);
   const temporary = fs.mkdtempSync(path.join(env.RUNNER_TEMP || os.tmpdir(), 'ohpm-publish-'));
   const privateKey = path.join(temporary, 'private.pem');
-  const cryptoDirectory = path.resolve(env.OHPM_CRYPTO_PATH);
+  const cryptoDirectory = path.join(temporary, 'crypto');
   try {
     fs.writeFileSync(privateKey, pem, { mode: 0o600 });
-    // OHPM config encrypt requires an interactive TTY. The operator generates
-    // ciphertext on the runner once; CI uses that ciphertext and matching component.
+    fs.mkdirSync(cryptoDirectory, { mode: 0o700 });
+    // Supply a temporary terminal to the official encryption command. Users only
+    // configure the original private-key password, never a machine-bound ciphertext.
+    const ciphertext = run(env.PYTHON_BIN || 'python3', [path.join(root, 'scripts/encrypt-passphrase.py')], temporary, {
+      stdio: 'pipe', encoding: 'utf8', timeout: 40000,
+      input: JSON.stringify({ password: env.OHPM_KEY_PASSPHRASE,
+        command: [ohpmBinary(), 'config', 'encrypt', '--crypto_path', cryptoDirectory] }),
+    }).trim();
+    if (!/^security:[^\s]+$/.test(ciphertext)) throw new Error('Invalid OHPM ciphertext');
     const fields = {
       publish_registry: 'https://ohpm.openharmony.cn/ohpm',
       publish_id: env.OHPM_PUBLISH_ID,
       key_path: privateKey.replace(/\\/g, '/'),
       crypto_path: cryptoDirectory.replace(/\\/g, '/'),
-      key_passphrase: env.OHPM_KEY_PASSPHRASE,
+      key_passphrase: ciphertext,
       log_level: 'warn',
     };
     fs.writeFileSync(path.join(temporary, '.ohpmrc'), Object.entries(fields).map(([name, value]) => `${name}=${JSON.stringify(value)}`).join('\n') + '\n', { mode: 0o600 });

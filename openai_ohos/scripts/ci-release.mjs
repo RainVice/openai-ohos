@@ -22,7 +22,7 @@ if (step === 'plan') {
   output('version', plan.version);
   output('reason', plan.reason);
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `Official latest: **${latest}**. OHPM target: **${plan.version}**. Decision: **${plan.reason}**.\n\nSet repository variable \`OHPM_RELEASE_ENABLED=true\` only after configuring the \`ohos\` runner and the three OHPM Secrets.\n`);
+    `Official latest: **${latest}**. OHPM target: **${plan.version}**. Decision: **${plan.reason}**.\n\nPublishing uses a GitHub-hosted runner. Configure the three OHPM Secrets and \`HARMONY_CLT_URL\`; no self-hosted runner is needed.\n`);
 } else if (step === 'commit') {
   const report = verifyReleaseHash(path.join(root, 'dist/openai_ohos.har'));
   const branch = run('git', ['branch', '--show-current'], repo, { encoding: 'utf8', stdio: 'pipe' }).trim();
