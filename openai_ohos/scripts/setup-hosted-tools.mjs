@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { createHash } from 'node:crypto';
 import { run } from './toolchain.mjs';
 import { validateDownloadURL, downloadToolchainResponse } from './toolchain-download.mjs';
+import { resolveHostedToolchain } from './hosted-toolchain-layout.mjs';
 
 if (process.platform !== 'linux' || process.arch !== 'x64') throw new Error('Hosted release setup requires Linux x64');
 const source = process.env.HARMONY_CLT_URL;
@@ -63,17 +64,13 @@ function find(directory, depth = 0) {
 find(destination);
 if (matches.length !== 1) throw new Error('Expected one complete HarmonyOS Command Line Tools installation (including HMS SDK)');
 const tools = matches[0];
-const env = {
-  OHPM_BIN: path.join(tools, 'ohpm/bin/ohpm'),
-  HVIGOR_BIN: path.join(tools, 'hvigor/bin/hvigorw.js'),
-  ES2ABC_BIN: path.join(tools, 'sdk/default/openharmony/ets/build-tools/ets-loader/bin/ark/build-linux/bin/es2abc'),
-  DEVECO_SDK_HOME: path.join(tools, 'sdk'),
-  TARGET_SDK_VERSION: '26.0.0',
-};
+const env = resolveHostedToolchain(tools);
 for (const key of ['OHPM_BIN', 'HVIGOR_BIN', 'ES2ABC_BIN']) {
-  if (!fs.existsSync(env[key])) throw new Error(`Official archive is missing ${key}`);
   fs.chmodSync(env[key], 0o755);
 }
+console.log(`ETS compiler: ${path.relative(tools, env.ES2ABC_BIN)}`);
+// Detect architecture/shared-library problems during setup, before the large SDK build.
+run(env.ES2ABC_BIN, ['--bc-version']);
 if (!process.env.GITHUB_ENV) throw new Error('GITHUB_ENV is required');
 for (const [name, value] of Object.entries(env)) fs.appendFileSync(process.env.GITHUB_ENV, `${name}=${value}\n`);
 console.log('Configured OHPM, Hvigor and the full HarmonyOS SDK. No user tool paths required.');
