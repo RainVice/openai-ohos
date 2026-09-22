@@ -1,6 +1,6 @@
 {
   "name": "openai_ohos",
-  "version": "7.20.0",
+  "version": "7.21.0",
   "description": "Official OpenAI JavaScript SDK with HarmonyOS fetch, streams and Web API runtime bindings.",
   "main": "Index.ets",
   "license": "Apache-2.0",
