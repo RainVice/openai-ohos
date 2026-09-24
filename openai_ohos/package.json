@@ -15,7 +15,7 @@
     "build": "node scripts/build-local.mjs"
   },
   "dependencies": {
-    "openai": "7.22.0"
+    "openai": "7.23.0"
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
